@@ -1,4 +1,4 @@
-import { getStatus } from "../whatsapp/client.js";
+import { getStatus, getQRData } from "../whatsapp/client.js";
 
 export const connectWhatsappDefinition = {
   name: "connect_whatsapp",
@@ -11,37 +11,56 @@ export const connectWhatsappDefinition = {
   },
 };
 
-export async function connectWhatsapp(): Promise<string> {
+export interface ConnectResult {
+  status: "connected" | "awaiting_scan" | "initializing" | "error";
+  message: string;
+  qrUrl?: string | null;
+  qrBase64?: string;
+  instructions?: string;
+  error?: string;
+}
+
+export async function connectWhatsapp(): Promise<ConnectResult> {
   try {
     const status = await getStatus();
 
     if (status.connected) {
-      return JSON.stringify({
+      return {
         status: "connected",
         message: "WhatsApp is connected and ready to send/receive messages.",
-      });
+      };
     }
 
     if (status.hasQR && status.qrUrl) {
-      return JSON.stringify({
+      // Fetch raw QR data for inline image rendering in MCP clients
+      let qrBase64: string | undefined;
+      try {
+        const qrData = await getQRData();
+        qrBase64 = qrData.base64;
+      } catch {
+        // Fallback: QR data fetch failed, still return URL
+      }
+
+      return {
         status: "awaiting_scan",
-        message: `WhatsApp is not connected yet. Please scan the QR code to link your WhatsApp session.`,
+        message: "WhatsApp is not connected yet. Scan the QR code below with your phone.",
         qrUrl: status.qrUrl,
+        qrBase64,
         instructions:
-          "Open WhatsApp on your phone → Settings → Linked Devices → Link a Device → Scan the QR code at the URL above.",
-      });
+          "Open WhatsApp on your phone → Settings → Linked Devices → Link a Device → Scan the QR code.",
+      };
     }
 
-    return JSON.stringify({
+    return {
       status: "initializing",
       message:
         "WhatsApp client is initializing. Please wait a few seconds and try again.",
-    });
+    };
   } catch (err) {
-    return JSON.stringify({
+    return {
       status: "error",
       message: `Could not reach the WhatsApp sidecar. Make sure it is running with: npm run sidecar`,
       error: String(err),
-    });
+    };
   }
 }

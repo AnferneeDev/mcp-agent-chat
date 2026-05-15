@@ -94,3 +94,41 @@ export async function stopNegotiation(phone: string): Promise<NegotiationResult>
     method: "DELETE",
   });
 }
+
+// --- QR Code Raw Data ---
+
+export interface QRData {
+  qrDataUrl: string | null;
+  base64?: string;
+  connected?: boolean;
+  waiting?: boolean;
+}
+
+export async function getQRData(): Promise<QRData> {
+  return fetchJSON<QRData>("/qr-data");
+}
+
+// --- Clear Cache ---
+
+export async function clearSidecarCache(): Promise<{ success: boolean; clearedContacts: number }> {
+  return fetchJSON("/clear-cache", { method: "POST" });
+}
+
+// --- Send Media ---
+
+export interface SendMediaParams {
+  number: string;
+  filePath?: string;
+  caption?: string;
+  mediaData?: string;
+  mimeType?: string;
+  fileName?: string;
+}
+
+export async function sendMedia(params: SendMediaParams): Promise<{ success: boolean; to: string; mediaType?: string; caption?: string }> {
+  return fetchJSON("/send-media", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+}

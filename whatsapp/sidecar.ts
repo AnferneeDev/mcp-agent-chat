@@ -1,6 +1,7 @@
 import express from "express";
+import type { Request, Response } from "express";
 import whatsapp from "whatsapp-web.js";
-const { Client, LocalAuth } = whatsapp;
+const { Client, LocalAuth, MessageMedia } = whatsapp;
 import type { Message as WAMessage } from "whatsapp-web.js";
 import QRCode from "qrcode";
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
@@ -22,7 +23,7 @@ import {
   type AutoResponderResult,
 } from "./auto-responder.js";
 
-config({ path: resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", ".env") });
+config({ path: resolve(dirname(fileURLToPath(import.meta.url)), "..", ".env") });
 
 const PORT = parseInt(process.env.SIDECAR_PORT || "3001", 10);
 const MESSAGES_PATH = resolve(process.cwd(), "data", "messages.json");
@@ -337,7 +338,29 @@ client.on("message", async (msg: WAMessage) => {
 
 async function generateSummaryText(negotiation: Negotiation, result: AutoResponderResult, resolvedKey: string): Promise<string> {
   const DEEPSEEK_KEY = process.env.DEEPSEEK_API_KEY || "";
-  if (!DEEPSEEK_KEY) {
+  const AI_PROVIDER = process.env.AI_PROVIDER || "deepseek";
+  const OLLAMA_URL = (process.env.OLLAMA_URL || "http://localhost:11434").replace(/\/$/, "");
+  const OPENAI_KEY = process.env.OPENAI_API_KEY || "";
+
+  let apiUrl: string;
+  let apiKey: string;
+  let model: string;
+
+  if (AI_PROVIDER === "ollama") {
+    apiUrl = `${OLLAMA_URL}/v1/chat/completions`;
+    apiKey = "ollama";
+    model = process.env.OLLAMA_MODEL || "llama3.2";
+  } else if (AI_PROVIDER === "openai") {
+    apiUrl = "https://api.openai.com/v1/chat/completions";
+    apiKey = OPENAI_KEY;
+    model = process.env.MODEL || "gpt-4o";
+  } else {
+    apiUrl = "https://api.deepseek.com/chat/completions";
+    apiKey = DEEPSEEK_KEY;
+    model = process.env.MODEL || "deepseek-chat";
+  }
+
+  if (!apiKey) {
     return `${result.reason === "deal_accepted" ? "✅" : "❌"} ${result.reason}\n${negotiation.businessName || resolvedKey.replace("@c.us", "")}\n${negotiation.phone}\n${result.reply}\n${negotiation.rounds}/${negotiation.maxRounds} rounds`;
   }
 
@@ -348,14 +371,14 @@ async function generateSummaryText(negotiation: Negotiation, result: AutoRespond
       : "MAX ROUNDS";
 
   try {
-    const res = await fetch("https://api.deepseek.com/chat/completions", {
+    const res = await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${DEEPSEEK_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "deepseek-chat",
+        model,
         max_tokens: 250,
         temperature: 0.3,
         messages: [
@@ -435,7 +458,7 @@ const app = express();
 app.use(express.json());
 
 // Health / status
-app.get("/status", (_req, res) => {
+app.get("/status", (_req: Request, res: Response) => {
   res.json({
     connected: isConnected,
     hasQR: currentQR !== null,
@@ -444,7 +467,7 @@ app.get("/status", (_req, res) => {
 });
 
 // QR code page
-app.get("/qr", (_req, res) => {
+app.get("/qr", (_req: Request, res: Response) => {
   if (isConnected) {
     res.send(`
       <html>
@@ -490,7 +513,7 @@ app.get("/qr", (_req, res) => {
 });
 
 // Send a message
-app.post("/send", async (req, res) => {
+app.post("/send", async (req: Request, res: Response) => {
   const { number, message } = req.body as { number: string; message: string };
 
   if (!isConnected) {
@@ -538,7 +561,7 @@ app.post("/send", async (req, res) => {
 });
 
 // Check replies — exact match by normalized @c.us key
-app.get("/replies", (req, res) => {
+app.get("/replies", (req: Request, res: Response) => {
   const numbersParam = (req.query.numbers as string) || "";
   const numbers = numbersParam
     .split(",")
@@ -563,10 +586,22 @@ app.get("/replies", (req, res) => {
   res.json({ replies: result });
 });
 
+// QR code raw data for MCP image content
+app.get("/qr-data", (_req: Request, res: Response) => {
+  if (qrDataUrl) {
+    const base64 = qrDataUrl.includes(",") ? qrDataUrl.split(",")[1] : qrDataUrl;
+    res.json({ qrDataUrl, base64 });
+  } else if (isConnected) {
+    res.json({ qrDataUrl: null, connected: true });
+  } else {
+    res.json({ qrDataUrl: null, connected: false, waiting: true });
+  }
+});
+
 // --- Negotiation Management Endpoints ---
 
 // Start a new autonomous negotiation
-app.post("/negotiations", (req, res) => {
+app.post("/negotiations", (req: Request, res: Response) => {
   const { phone, phoneFormatted, businessName, context, objective, brief, maxRounds } = req.body as {
     phone: string;
     phoneFormatted: string;
@@ -601,14 +636,14 @@ app.post("/negotiations", (req, res) => {
 });
 
 // List all negotiations
-app.get("/negotiations", (_req, res) => {
+app.get("/negotiations", (_req: Request, res: Response) => {
   const negotiations = getAllNegotiations();
   res.json({ negotiations });
 });
 
 // Stop a negotiation
-app.delete("/negotiations/:phone", (req, res) => {
-  const phone = req.params.phone;
+app.delete("/negotiations/:phone", (req: Request, res: Response) => {
+  const phone = req.params.phone as string;
   const updated = updateNegotiation(phone, {
     status: "stopped",
     reason: "manual_stop",
@@ -632,6 +667,86 @@ app.delete("/negotiations/:phone", (req, res) => {
 
   console.error(`[Negotiation] Stopped for ${phone}`);
   res.json({ success: true, negotiation: updated });
+});
+
+// --- Clear Cache ---
+
+app.post("/clear-cache", (_req: Request, res: Response) => {
+  const clearedCount = Object.keys(incomingMessages).length;
+  incomingMessages = {};
+  // Clear sent message log
+  for (const key of Object.keys(sentMessageLog)) {
+    delete sentMessageLog[key];
+  }
+  // Clear LID caches
+  lidCache.clear();
+  reverseLidCache.clear();
+  // Clear messages.json on disk
+  ensureDataDir();
+  writeFileSync(MESSAGES_PATH, JSON.stringify({}, null, 2));
+  console.error(`[Cache] Cleared ${clearedCount} contact threads, all message logs, and LID caches.`);
+  res.json({ success: true, clearedContacts: clearedCount });
+});
+
+// --- Send Media ---
+
+app.post("/send-media", async (req: Request, res: Response) => {
+  const { number, filePath, caption, mediaData, mimeType, fileName } = req.body as {
+    number: string;
+    filePath?: string;
+    caption?: string;
+    mediaData?: string; // base64-encoded
+    mimeType?: string;  // e.g. "image/png", "application/pdf"
+    fileName?: string;
+  };
+
+  if (!isConnected) {
+    res.status(503).json({ error: "WhatsApp is not connected. Scan QR first." });
+    return;
+  }
+
+  if (!number) {
+    res.status(400).json({ error: "Missing 'number' in body." });
+    return;
+  }
+
+  try {
+    let media: typeof MessageMedia.prototype;
+
+    if (filePath) {
+      media = MessageMedia.fromFilePath(filePath);
+    } else if (mediaData && mimeType) {
+      media = new MessageMedia(mimeType, mediaData, fileName || "file");
+    } else {
+      res.status(400).json({ error: "Provide either 'filePath' or both 'mediaData' + 'mimeType'." });
+      return;
+    }
+
+    if (caption) {
+      media = Object.assign(media, { caption });
+    }
+
+    const cleanNumber = number.replace(/@(c\.us|lid|s\.whatsapp\.net)$/, "").replace(/\D/g, "");
+    const cachedKey = `${cleanNumber}@c.us`;
+    const cachedLid = reverseLidCache.get(cachedKey);
+    let chatId: string;
+
+    if (cachedLid) {
+      chatId = cachedLid;
+    } else {
+      const resolvedId = await (client as any).getNumberId(cleanNumber).catch(() => null);
+      chatId = resolvedId ? (resolvedId._serialized as string) : `${cleanNumber}@c.us`;
+    }
+
+    await client.sendMessage(chatId, media);
+    const trackKey = chatId.includes("@c.us") ? chatId : `${cleanNumber}@c.us`;
+    trackSentMessage(trackKey, `[MEDIA] ${fileName || filePath || mimeType}${caption ? ` — ${caption}` : ""}`);
+    console.error(`[WhatsApp] Media sent to ${chatId}: ${fileName || filePath || mimeType}`);
+    res.json({ success: true, to: chatId, mediaType: mimeType || filePath, caption });
+  } catch (err) {
+    console.error("[WhatsApp] Send media error:", err);
+    res.status(500).json({ error: "Failed to send media", details: String(err) });
+  }
 });
 
 // --- Start ---

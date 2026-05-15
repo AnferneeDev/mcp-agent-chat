@@ -7,7 +7,9 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const AI_PROVIDER = process.env.AI_PROVIDER || (DEEPSEEK_API_KEY ? "deepseek" : (OPENAI_API_KEY ? "openai" : "deepseek"));
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const DEEPSEEK_URL = "https://api.deepseek.com/chat/completions";
-const MODEL = process.env.MODEL || (AI_PROVIDER === "openai" ? "gpt-4o" : "deepseek-chat");
+const OLLAMA_URL = (process.env.OLLAMA_URL || "http://localhost:11434").replace(/\/$/, "");
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "llama3.2";
+const MODEL = process.env.MODEL || (AI_PROVIDER === "openai" ? "gpt-4o" : AI_PROVIDER === "ollama" ? OLLAMA_MODEL : "deepseek-chat");
 
 export interface NegotiationContext {
   businessName?: string;
@@ -33,8 +35,9 @@ export interface AutoResponderResult {
 
 async function callAI(messages: { role: string; content: string }[]): Promise<string> {
   const isOpenAI = AI_PROVIDER === "openai";
-  const url = isOpenAI ? OPENAI_URL : DEEPSEEK_URL;
-  const key = isOpenAI ? OPENAI_API_KEY : DEEPSEEK_API_KEY;
+  const isOllama = AI_PROVIDER === "ollama";
+  const url = isOllama ? `${OLLAMA_URL}/v1/chat/completions` : isOpenAI ? OPENAI_URL : DEEPSEEK_URL;
+  const key = isOllama ? "ollama" : isOpenAI ? OPENAI_API_KEY : DEEPSEEK_API_KEY;
 
   if (!key) {
     throw new Error(`${AI_PROVIDER}_API_KEY is not configured.`);
