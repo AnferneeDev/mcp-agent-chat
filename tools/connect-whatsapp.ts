@@ -17,6 +17,8 @@ export interface ConnectResult {
   qrUrl?: string | null;
   qrBase64?: string;
   instructions?: string;
+  provider?: string;
+  providerInfo?: string;
   error?: string;
 }
 
@@ -28,6 +30,8 @@ export async function connectWhatsapp(): Promise<ConnectResult> {
       return {
         status: "connected",
         message: "WhatsApp is connected and ready to send/receive messages.",
+        provider: (status as any).provider,
+        providerInfo: (status as any).providerInfo,
       };
     }
 
@@ -46,6 +50,8 @@ export async function connectWhatsapp(): Promise<ConnectResult> {
         message: "WhatsApp is not connected yet. Scan the QR code below with your phone.",
         qrUrl: status.qrUrl,
         qrBase64,
+        provider: (status as any).provider,
+        providerInfo: (status as any).providerInfo,
         instructions:
           "Open WhatsApp on your phone → Settings → Linked Devices → Link a Device → Scan the QR code.",
       };

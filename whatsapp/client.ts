@@ -8,6 +8,8 @@ export interface SidecarStatus {
   connected: boolean;
   hasQR: boolean;
   qrUrl: string | null;
+  provider?: string;
+  providerInfo?: string;
 }
 
 export interface SendResult {

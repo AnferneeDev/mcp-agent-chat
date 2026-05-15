@@ -463,6 +463,8 @@ app.get("/status", (_req: Request, res: Response) => {
     connected: isConnected,
     hasQR: currentQR !== null,
     qrUrl: currentQR ? `http://localhost:${PORT}/qr` : null,
+    provider: AI_PROVIDER,
+    providerInfo: aiProviderInfo,
   });
 });
 
@@ -751,7 +753,20 @@ app.post("/send-media", async (req: Request, res: Response) => {
 
 // --- Start ---
 
+const AI_PROVIDER = process.env.AI_PROVIDER || "deepseek";
+const aiProviderInfo = (() => {
+  switch (AI_PROVIDER) {
+    case "ollama":
+      return `ollama @ ${process.env.OLLAMA_URL || "http://localhost:11434"} (${process.env.OLLAMA_MODEL || "llama3.2"})`;
+    case "openai":
+      return `openai (${process.env.MODEL || "gpt-4o"})`;
+    default:
+      return `deepseek (${process.env.MODEL || "deepseek-chat"})`;
+  }
+})();
+
 console.error(`[Sidecar] Starting WhatsApp sidecar on port ${PORT}...`);
+console.error(`[Sidecar] AI provider: ${aiProviderInfo}`);
 loadMessages();
 client.initialize();
 
