@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.env
+data/leads.json
+data/messages.json
+data/agentic.db
+data/agentic.db-wal
+data/agentic.db-shm
+.wwebjs_auth/
+.wwebjs_cache/
+.wwebjs_sessions/
+node_modules
+qopencode.json
+frontend/dist/
+frontend/node_modules/
+.vscode/
+.vs/

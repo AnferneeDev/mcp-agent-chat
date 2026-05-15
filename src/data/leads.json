@@ -1,0 +1,73 @@
+{
+  "leads": [
+    {
+      "id": "ChIJRXN89XlZKowRdVdvX1RPQjk",
+      "name": "El Toro Dorado",
+      "address": "Caracas 1041, Capital District, Venezuela",
+      "phone": "+58 424-2881779",
+      "phoneFormatted": "584242881779@c.us",
+      "rating": 4.7,
+      "website": "https://www.instagram.com/el_torodorado/",
+      "placeId": "ChIJRXN89XlZKowRdVdvX1RPQjk",
+      "messages": [
+        {
+          "direction": "outbound",
+          "body": "Hola! Somos un grupo buscando opciones de carnes y asados para un evento. Me podrian dar informacion de sus productos, precios y disponibilidad? Gracias!",
+          "timestamp": "2026-05-14T06:38:30.000Z"
+        },
+        {
+          "direction": "outbound",
+          "body": "Hola! Somos un grupo buscando opciones de carnes y asados para un evento. Me podrian dar informacion de sus productos, precios y disponibilidad? Gracias!",
+          "timestamp": "2026-05-14T06:38:30.001Z"
+        }
+      ],
+      "createdAt": "2026-05-14T06:38:20.402Z"
+    },
+    {
+      "id": "ChIJ78PpI-hZKowRUZ6fSETCV_U",
+      "name": "Todo Carnes - Bello Monte",
+      "address": "Av. Beethoven, Caracas 1080, Distrito Capital, Venezuela",
+      "phone": "+58 414-1717285",
+      "phoneFormatted": "584141717285@c.us",
+      "rating": 4.6,
+      "placeId": "ChIJ78PpI-hZKowRUZ6fSETCV_U",
+      "messages": [
+        {
+          "direction": "outbound",
+          "body": "Hola! Somos un grupo buscando opciones de carnes y asados para un evento. Me podrian dar informacion de sus productos, precios y disponibilidad? Gracias!",
+          "timestamp": "2026-05-14T06:38:32.798Z"
+        },
+        {
+          "direction": "outbound",
+          "body": "Hola! Somos un grupo buscando opciones de carnes y asados para un evento. Me podrian dar informacion de sus productos, precios y disponibilidad? Gracias!",
+          "timestamp": "2026-05-14T06:38:32.798Z"
+        }
+      ],
+      "createdAt": "2026-05-14T06:38:20.402Z"
+    },
+    {
+      "id": "ChIJ5Sxih1ZZKowRMBkD60vTDl0",
+      "name": "Todo Carnes - Los Palos Grandes",
+      "address": "Los Palos Grandes, primera avenida, con tercera transversal, Caracas 1080, Miranda, Venezuela",
+      "phone": "+58 412-6601004",
+      "phoneFormatted": "584126601004@c.us",
+      "rating": 4.6,
+      "website": "https://www.instagram.com/todocarnes.ccs?igsh=N20weTlwcWhiYjk1",
+      "placeId": "ChIJ5Sxih1ZZKowRMBkD60vTDl0",
+      "messages": [
+        {
+          "direction": "outbound",
+          "body": "Hola! Somos un grupo buscando opciones de carnes y asados para un evento. Me podrian dar informacion de sus productos, precios y disponibilidad? Gracias!",
+          "timestamp": "2026-05-14T06:38:35.684Z"
+        },
+        {
+          "direction": "outbound",
+          "body": "Hola! Somos un grupo buscando opciones de carnes y asados para un evento. Me podrian dar informacion de sus productos, precios y disponibilidad? Gracias!",
+          "timestamp": "2026-05-14T06:38:35.684Z"
+        }
+      ],
+      "createdAt": "2026-05-14T06:38:20.402Z"
+    }
+  ],
+  "negotiations": []
+}
